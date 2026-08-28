@@ -44,8 +44,8 @@ From the enrolled list, make `students.csv` with exactly these headers:
 
 ```csv
 roll_no,name
-PhD24103,Partha Chowdhury
-MT24028,Chaitanya Ravindra Kulkarni
+CS21-014,Student1
+CS21-015,Student2
 ```
 
 Drop extra ERP columns (serial number, type, batch, term, grade). `roll_no` is the unique key.
@@ -68,6 +68,27 @@ Give each student **only their own** QR (`qr_codes/<ROLL>.png`, or print `print_
 If students join later, keep `tokens.csv`, add rows to `students.csv`, and run the script again. Existing roll numbers reuse their tokens; only new rolls get new QRs. Append the new rows to the Students tab and send QRs only to the new students.
 
 Do not commit `students.csv`, `tokens.csv`, `qr_codes/`, or `print_sheet.html` (they are gitignored).
+
+---
+
+## Optional: email QRs to students
+
+The scanner does not require email delivery. If you want to send one PDF QR to
+each student, the optional helpers in [`ops/`](ops/README.md) can rename the
+generated QR images, convert them to PDFs, and send them from Google Apps
+Script.
+
+Start with the normal QR-generation flow above: create a local `students.csv`,
+run `generate_qr.py`, and keep the generated `qr_codes/` folder local. Then
+follow the [optional email-QR guide](ops/README.md).
+
+> **Warning:** Keep `TEST_MODE = true` in `ops/Code.gs` until a dry run reports
+> `TEST OK` for every intended recipient. Change it to `false` only after you
+> have verified that each PDF is named `<email>.pdf` and the target sheet is
+> correct.
+
+Never commit `qr_codes/`, the student PDFs, `students.csv`, `tokens.csv`, or
+`ops/data.csv` when they contain real student data or email addresses.
 
 ---
 
@@ -145,85 +166,6 @@ Commit and push `config.js`. Hard-refresh the Pages URL if an old config is cach
 4. Load Student Data → Start Camera → scan.
 
 Each successful scan appends timestamp, date (IST), roll number, name, Present, and session. Filter the Attendance tab by **date** or **session**. The same student is not marked twice for the same date + session. If login expires, use **Reconnect Google**.
-
-
-# OPTIONAL: Operations for orchestrating unique QR codes to individual inbox
- 
- # 1. Renaming the QRs from Roll Number to Email
-
-To have mail ID in the caption of QR code for easier identification instead of Roll Number, populate the CSV file named `data.csv`:
-
-```text
-"Roll Number", "Email ID"
-PhD24103,parthac@iiitd.ac.in
-MT24028,chaitanya24028@iiitd.ac.in
-```
-
-then run
-
-```bash
-python rename_qr.py
-``` 
-Note: Before renaming, you may take backup of existing QR images with Roll Number if required.
-
- # 2. Converting Image to PDF
-
-For a standard attachment format, if required, you may convert the QR images to PDF.
-
-```bash
-python images_to_pdf.py
-```
-
-# 3. Sending individual QRs to students over mail
-
-Note: Perform following operations using your college domain mail-ID
-
- 1. Upload the QR PDFs in a folder in Google Drive.
-
- 2. Observe the URL of the folder and note down the folder ID.
-
-    For Example:
-
-    https://drive.google.com/drive/u/1/folders/2UWM7zvOWghExfunP6zHa9VYlW4Lm83_k
-
-    Above URL points to folder with uploaded QR PDFs having folder ID - 2UWM7zvOWghExfunP6zHa9VYlW4Lm83_k
-
- 3. Open google_sheets_apps_script.txt and place the folder ID against FOLDER_ID variable. 
-
- 4. Fill other placeholders as per course and sender details. You may modify the mail body as per requirement.
-
- 5. Create another Google Sheet (say "Mail_Orchestration") with two columns - Email and Status
-
- 6. To perform sanity check of the feature:
-
-    Enter a dummy mail (or your own email-ID) and use the same mail-ID as caption for a QR PDF from the above folder.
-    For this, you can make a copy of an existing QR PDF and rename it as per the mail chosen.
-
-
-    ```text
-    Email,Status
-    dummy@gmail.com,	
-    dummy2@gmail.com,	
-    ```
-
- 7. In the same sheet on top, go to Extensions -> Apps Script
-   (may name it "Mail_Orchestration") 
-
- 8. Copy the content of google_sheets_apps_script.txt into the code area.
-
- 9. In the code, ensure the variable TEST_MODE is set to true for validation.
-
- 10. Click Run and observe the progress of the script and Mail_Orchestration sheet.
-
- 11. Once test is validated change the TEST_MODE to false and click Run.
-
- 12. Check the inbox of the recipient.
-
- 13. Carefully populate the Mail Orchestration sheet with correct Email IDs as per QR PDFs. 
-     You can make use of data.csv created earlier for populating correct Email IDs
-
- 14. Click Run to orchestrate individual QR PDFs directly into the inbox.
-
 
 ---
 
