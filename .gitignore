@@ -3,6 +3,7 @@ students.csv
 tokens.csv
 qr_codes/
 print_sheet.html
+ops/data.csv
 
 .DS_Store
 __pycache__/
