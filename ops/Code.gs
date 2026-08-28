@@ -1,0 +1,122 @@
+const FOLDER_ID = "<DRIVE_FOLDER_ID>";
+
+const SUBJECT = "<COURSE_NAME> attendance QR Code";
+
+const SENDER_NAME = "<SENDER_NAME>";
+
+const EMAIL_BODY = `
+Dear Student,
+
+Please find your QR code attached with this email.
+
+You must bring a hardcopy of the QR code along with your ID card in every class.
+
+If ID card(even temporary ID) is not issued, you may bring printout of other
+valid documents like Enrollment Form or approved mail of admission.
+
+Regards,
+${SENDER_NAME}
+`;
+
+const TEST_MODE = true;
+
+
+function sendBulkEmails() {
+
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const data = sheet.getDataRange().getValues();
+
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+
+  const headers = data[0];
+
+  const emailCol = headers.indexOf("Email");
+  const nameCol = headers.indexOf("Name");
+  const statusCol = headers.indexOf("Status");
+
+  if (emailCol === -1) {
+    throw new Error("Email column not found.");
+  }
+
+  if (statusCol === -1) {
+    throw new Error("Status column not found.");
+  }
+
+  for (let i = 1; i < data.length; i++) {
+
+    const email = String(data[i][emailCol]).trim();
+
+    const name = nameCol !== -1
+      ? String(data[i][nameCol]).trim()
+      : "";
+
+    const status = String(data[i][statusCol]).trim();
+
+    if (!email) {
+      continue;
+    }
+
+    if (status === "Sent") {
+      continue;
+    }
+
+    try {
+
+      const filename = email + ".pdf";
+
+      const files = folder.getFilesByName(filename);
+
+      if (!files.hasNext()) {
+
+        sheet
+          .getRange(i + 1, statusCol + 1)
+          .setValue("ERROR: PDF not found");
+
+        continue;
+      }
+
+      const file = files.next();
+
+      const body = EMAIL_BODY.replaceAll("{{name}}", name);
+
+      if (TEST_MODE) {
+
+        Logger.log(
+          "TEST: " +
+          email +
+          " ← " +
+          filename
+        );
+
+        sheet
+          .getRange(i + 1, statusCol + 1)
+          .setValue("TEST OK");
+
+        continue;
+      }
+
+      GmailApp.sendEmail(
+        email,
+        SUBJECT,
+        body,
+        {
+          attachments: [file.getBlob()],
+          name: SENDER_NAME
+        }
+      );
+
+      sheet
+        .getRange(i + 1, statusCol + 1)
+        .setValue("Sent");
+
+      Utilities.sleep(1000);
+
+    } catch (error) {
+
+      sheet
+        .getRange(i + 1, statusCol + 1)
+        .setValue("ERROR: " + error.message);
+
+    }
+  }
+}
